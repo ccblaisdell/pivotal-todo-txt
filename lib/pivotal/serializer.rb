@@ -1,9 +1,9 @@
 module PivotalSerializer
-  def serialize_all(stories, owners)
+  def serialize_all(stories, owners=[])
     stories.map {|story| serialize_one(story, owners)}
   end
 
-  def serialize_one(story, owners)
+  def serialize_one(story, owners=[])
     output = []
     output << put_state(story)
     output << put_estimate(story)

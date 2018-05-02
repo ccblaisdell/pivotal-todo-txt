@@ -37,4 +37,12 @@ module PivotalApi
       "#{BASE_PATH}/projects/#{ENV["PIVOTAL_PROJECT_ID"]}#{path}",
       "X-TrackerToken" => ENV["PIVOTAL_API_KEY"])
   end
+
+  def post(path, payload={})
+    RestClient.post(
+      "#{BASE_PATH}/projects/#{ENV["PIVOTAL_PROJECT_ID"]}#{path}",
+      payload,
+      { "X-TrackerToken" => ENV["PIVOTAL_API_KEY"] }
+    )
+  end
 end
