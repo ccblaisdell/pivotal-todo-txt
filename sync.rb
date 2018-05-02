@@ -14,6 +14,24 @@ FILE_NAME = "todo.txt.md"
 module Sync
   def start
     owners = PivotalApi.fetch_owners
+    # labels = PivotalApi.fetch_labels
+    # epics = PivotalApi.fetch_epics
+    
+    # my_remote_stories = PivotalApi.fetch_my_stories
+    # support_remote_stories = PivotalApi.fetch_support_stories
+    # remote_stories = PivotalParser.parse_all(my_remote_stories + support_remote_stories)
+
+    # local_tasks = read([])
+
+    # compare stuff
+    # tasks_to_update_locally = ...
+    # stories_to_update_remotely = ...
+    # tasks_to_create_remotely = ...
+    # stories_to_create_locally = ...
+  end
+
+  def rebuild
+    owners = PivotalApi.fetch_owners
     labels = PivotalApi.fetch_labels
     epics = PivotalApi.fetch_epics
     
@@ -21,15 +39,7 @@ module Sync
     support_remote_stories = PivotalApi.fetch_support_stories
     remote_stories = PivotalParser.parse_all(my_remote_stories + support_remote_stories)
 
-    local_tasks = read(owners)
-    # write(remote_stories, owners)
-    # local_tasks = Todo.fetch_tasks
-
-    # compare stuff
-    # tasks_to_update_locally = ...
-    # stories_to_update_remotely = ...
-    # tasks_to_create_remotely = ...
-    # stories_to_create_locally = ...
+    write(remote_stories, owners)
   end
 
   def write(stories, owners)
@@ -40,14 +50,17 @@ module Sync
     end
   end
 
+  # This should gather ALL lines, not just tasks
   def read(owners)
-    tasks = []
+    lines = []
     File.open(FILE_NAME).read.each_line do |line|
       if line.match(/^(-|\+|\*)/)
-        tasks << TodoParser.parse_one(line, owners)
+        lines << TodoParser.parse_one(line, owners)
+      else
+        lines << line
       end
     end
-    tasks
+    lines
   end
 end
 
