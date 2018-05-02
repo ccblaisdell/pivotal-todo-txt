@@ -4,24 +4,27 @@ require './lib/pivotal/api'
 require './lib/pivotal/parser'
 require './lib/pivotal/serializer'
 require './lib/todo/parser'
-include PivotalApi
-include PivotalParser
-include PivotalSerializer
-include TodoParser
 
 FILE_NAME = "todo.txt.md"
 
+# eventual usage
+# ruby pivotal-todo-txt --watch --file ~/dev/icmib/todo.md
+
 module Sync
+  module_function
+
   def start
     owners = PivotalApi.fetch_owners
-    # labels = PivotalApi.fetch_labels
-    # epics = PivotalApi.fetch_epics
+    labels = PivotalApi.fetch_labels
+    epics = PivotalApi.fetch_epics
     
-    # my_remote_stories = PivotalApi.fetch_my_stories
-    # support_remote_stories = PivotalApi.fetch_support_stories
-    # remote_stories = PivotalParser.parse_all(my_remote_stories + support_remote_stories)
+    my_remote_stories = PivotalApi.fetch_my_stories
+    support_remote_stories = PivotalApi.fetch_support_stories
+    remote_stories = PivotalParser.parse_all(my_remote_stories + support_remote_stories)
 
-    # local_tasks = read([])
+    local_tasks = read(owners)
+
+    p local_tasks
 
     # compare stuff
     # tasks_to_update_locally = ...

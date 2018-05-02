@@ -2,6 +2,8 @@ require 'json'
 require 'rest-client'
 
 module PivotalApi
+  module_function
+  
   BASE_PATH = "https://www.pivotaltracker.com/services/v5"
   FIELDS = %w(id current_state estimate labels name owner_ids story_type url).join(',')
 

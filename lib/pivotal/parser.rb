@@ -1,4 +1,5 @@
 module PivotalParser
+  module_function
   def parse_all(stories)
     stories
       .map {|story| parse_one(story)}
