@@ -2,10 +2,12 @@ class Todo::Story
   attr_accessor :id, :status, :name, :owners, :labels, :url, :points
 
   STATUS_NAME_BY_SYMBOL = { "-" => "unstarted", "+" => "started", "*" => "finished" }
+  LINK_TEXT = "Link"
 
   def initialize(line)
     [@status, rest_of_line] = get_status(line)
     [@points, rest_of_line] = get_points(rest_of_line)
+    [@type,   rest_of_line] = get_type(rest_of_line)
     [@owners, rest_of_line] = get_owners(rest_of_line)
     [@labels, rest_of_line] = get_labels(rest_of_line)
     [@url,    rest_of_line] = get_url(rest_of_line)
@@ -22,17 +24,6 @@ class Todo::Story
     }.to_json
   end
 
-  # This probably lives on Pivotal::Story
-  # - (2) The name goes here @BW @BT #label #label [Synced](url)
-  def to_s
-    output = [@status]
-    output << "(#{points})" unless @points.nil?
-    output << [@name, @owners, @labels]
-    output << "[Synced](#{@url})" unless @url.nil?
-    output << "\n"
-    output.flatten.join(" ")
-  end
-
   private
 
   def get_status(rest_of_line)
@@ -43,6 +34,12 @@ class Todo::Story
 
   def get_points(rest_of_line)
     r = /^(\(\d\))/
+    [ rest_of_line.match(r)[1],
+      rest_of_line.gsub(r, "").strip ]
+  end
+
+  def get_type(rest_of_line)
+    r = /^\((chore|bug|release)\)/
     [ rest_of_line.match(r)[1],
       rest_of_line.gsub(r, "").strip ]
   end
@@ -60,7 +57,7 @@ class Todo::Story
   end
 
   def get_url(rest_of_line)
-    r = /\[Synced\]\((.*)\)$/
+    r = /\[#{LINK_TEXT}\]\((.*)\)$/
     [ rest_of_line.match(r)[1],
       rest_of_line.gsub(r, "").strip ]
   end
