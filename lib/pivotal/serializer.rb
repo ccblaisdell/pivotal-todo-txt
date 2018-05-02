@@ -1,6 +1,6 @@
 module PivotalSerializer
   module_function
-  
+
   def serialize_all(stories, owners=[])
     stories.map {|story| serialize_one(story, owners)}
   end
@@ -24,7 +24,9 @@ module PivotalSerializer
     when "started"
       "+"
     when "finished"
+      "*"
     when "delivered"
+      "*"
     when "accepted"
       "*"
     else

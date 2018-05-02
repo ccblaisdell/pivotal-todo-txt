@@ -21,8 +21,26 @@ module TodoParser
 
   def get_current_state(rest_of_line)
     r = /^(-|\+|\*)/
-    [ (rest_of_line.match(r) || [])[1],
+    symbol = (rest_of_line.match(r) || [])[1]
+    [ current_symbol_to_state(symbol),
       rest_of_line.gsub(r, "").strip]
+  end
+
+  def current_symbol_to_state(symbol)
+    case symbol
+    when "-"
+      "unstarted"
+    when "+"
+      "started"
+    when "*"
+      "finished"
+    when "*"
+      "delivered"
+    when "*"
+      "accepted"
+    else
+      nil
+    end
   end
 
   def get_estimate(rest_of_line)
@@ -56,13 +74,15 @@ module TodoParser
 
   def get_labels(rest_of_line)
     r = /#([\w\s]+)/
-    [ rest_of_line.scan(r).flatten.map {|l| l.strip}.uniq.compact,
+    [ rest_of_line.scan(r).flatten.map {|l| l.strip}.uniq.compact || [],
       rest_of_line.gsub(r, "").strip ]
   end
 
   def get_id(rest_of_line)
-    r = /:ID:(\d+)$/
-    [ (rest_of_line.match(r) || [])[1],
+    r = /:ID:(\d+)/
+    match = rest_of_line.match(r)
+    id = match ? match[1].to_i : nil
+    [ id,
       rest_of_line.gsub(r, "").strip ]
   end
   

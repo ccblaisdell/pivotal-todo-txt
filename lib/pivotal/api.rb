@@ -34,6 +34,18 @@ module PivotalApi
     JSON.parse(response.body)
   end
 
+  def create_story(story)
+    body = story.compact.reject {|k,v| v.is_a?(Array) && v.empty?}
+    response = post("/stories?fields=#{URI.encode FIELDS}", body)
+    JSON.parse(response.body)
+  end
+
+  def update_story(story)
+    body = story.compact.reject {|k,v| v.is_a?(Array) && v.empty?}
+    response = put("/stories/#{story["id"]}", body)
+    JSON.parse(response.body)
+  end
+
   def get(path)
     RestClient.get(
       "#{BASE_PATH}/projects/#{ENV["PIVOTAL_PROJECT_ID"]}#{path}",
@@ -41,10 +53,26 @@ module PivotalApi
   end
 
   def post(path, payload={})
-    RestClient.post(
-      "#{BASE_PATH}/projects/#{ENV["PIVOTAL_PROJECT_ID"]}#{path}",
-      payload,
-      { "X-TrackerToken" => ENV["PIVOTAL_API_KEY"] }
-    )
+    begin
+      RestClient.post(
+        "#{BASE_PATH}/projects/#{ENV["PIVOTAL_PROJECT_ID"]}#{path}",
+        payload,
+        { "X-TrackerToken" => ENV["PIVOTAL_API_KEY"] }
+      )
+    rescue RestClient::ExceptionWithResponse => e
+      e.response
+    end
+  end
+
+  def put(path, payload={})
+    begin
+      RestClient.put(
+        "#{BASE_PATH}/projects/#{ENV["PIVOTAL_PROJECT_ID"]}#{path}",
+        payload,
+        { "X-TrackerToken" => ENV["PIVOTAL_API_KEY"] }
+      )
+    rescue RestClient::ExceptionWithResponse => e
+      e.response
+    end
   end
 end
