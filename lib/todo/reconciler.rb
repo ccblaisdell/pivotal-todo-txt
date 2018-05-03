@@ -14,9 +14,9 @@ module TodoReconciler
   }
 
   def add_local_changeset(task)
-    local = task[:local] || {}
-    remote = task[:remote] || {}
-    previous = task[:previous]
+    local = task["local"] || {}
+    remote = task["remote"] || {}
+    previous = task["previous"]
 
     changeset = {}
     changeset = update_current_state(changeset, local, remote, previous)
@@ -24,7 +24,7 @@ module TodoReconciler
     changeset = enforce_min_estimate_if_start(changeset, local, remote, previous)
     changeset = update_name(changeset, local, remote, previous)
 
-    task[:local_changeset] = changeset
+    task["local_changeset"] = changeset
     task
   end
 
@@ -40,13 +40,13 @@ module TodoReconciler
 
   def update_name(changeset, local, remote, previous)
     compare = lambda {|loc, rem| rem} # prefer remote if conflict
-    new_name = get_new_val("name", local, remote, previous, compare)
+    new_name = get_new_val("name", local, remote, previous, &compare)
     new_name.nil? ? changeset : changeset.merge({ "name" => new_name })
   end
 
   def update_estimate(changeset, local, remote, previous)
     compare = lambda { |a, b| a > b ? a : b } # prefer higher estimate
-    new_estimate = get_new_val("estimate", local, remote, previous, compare)
+    new_estimate = get_new_val("estimate", local, remote, previous, &compare)
     new_estimate.nil? ? changeset : changeset.merge({ "estimate" => new_estimate })
   end
 
@@ -58,7 +58,7 @@ module TodoReconciler
     task.nil? ? nil : task[name]
   end
 
-  def get_new_val(name, local, remote, previous, fn)
+  def get_new_val(name, local, remote, previous, &fn)
     loc, rem, pre = vals(name, local, remote, previous)
     # if nothing changed
     if pre == loc && pre == rem
@@ -74,7 +74,7 @@ module TodoReconciler
       rem
     # local and remote have diverged
     else
-      fn(loc, rem)
+      fn.call(loc, rem)
     end
   end
 
@@ -108,6 +108,7 @@ module TodoReconciler
 
   def compare_current_state(from, to)
     return nil if from.nil?
+    return -1 if to.nil?
     return nil if from["current_state"] == to["current_state"]
     state_val(to) - state_val(from)
   end
