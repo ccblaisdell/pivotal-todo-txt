@@ -1,6 +1,10 @@
 module TodoParser
   module_function
 
+  def is_task?(line)
+    line.match(/^(-|\+|\*)/)
+  end
+
   def parse_one(line, owners=[])
     current_state, rest_of_line = get_current_state(line)
     estimate     , rest_of_line = get_estimate(rest_of_line)
