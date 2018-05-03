@@ -115,5 +115,4 @@ class TodoReconcilerTest < Test::Unit::TestCase
     })["local_changeset"]
     assert_equal "changed", changeset["name"]
   end
-
 end

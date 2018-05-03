@@ -28,9 +28,11 @@ module TodoReconciler
     task
   end
 
+  def apply_local_changeset(task)
+    task["local"] = task["local"].merge task["local_changeset"]
+  end
+
   def enforce_min_estimate_if_start(changeset, local, remote, previous)
-    local["estimate"]
-    changeset["estimate"]
     if local["estimate"].nil? && changeset["estimate"].nil? && state_val(local) > 0
       changeset.merge({ "estimate" => 1 })
     else

@@ -50,7 +50,7 @@ module TodoParser
   def get_estimate(rest_of_line)
     r = /^(\(\d\))/
     match = rest_of_line.match(r)
-    estimate = match ? match[1].match(/\d/)[0] : nil
+    estimate = match ? match[1].match(/\d/)[0].to_i : nil
     [ estimate,
       rest_of_line.gsub(r, "").strip ]
   end

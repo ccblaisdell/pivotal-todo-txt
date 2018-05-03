@@ -53,16 +53,13 @@ class Sync
     # compare stuff
     
     @tasks.each_pair {|id, task| @tasks[id] = TodoReconciler.add_local_changeset(task)}
-    puts @tasks.values[0]
-    puts @tasks.values[1]
-    puts @tasks.values[2]
-    puts @tasks.values[3]
-    # advance_current_state_of_remote_stories(@lines, remote_stories)
-    # @lines = create_new_remote_stories(@lines)
-
-    # @lines = advance_current_state_of_local_tasks(@lines, remote_stories)
-    # @lines = get_new_local_tasks(remote_stories, local_tasks) + @lines
-
+    @tasks.each_pair {|id, task| @tasks[id] = TodoReconciler.apply_local_changeset(task) }
+    
+    # Add remote changesets
+    # Apply remote changesets
+    # Create new stories
+    # Add new stories to @tasks and @lines
+    # write lines
     # write(@lines, owners)
   end
 
