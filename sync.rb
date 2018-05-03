@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require 'dotenv/load'
+require 'pry'
 require './lib/pivotal/api'
 require './lib/pivotal/parser'
 require './lib/pivotal/reconciler'
@@ -13,73 +14,57 @@ class Sync
   def initialize(opts={})
     @file_name = opts[:file] || DEFAULT_FILE_NAME
     @watch = opts[:watch]
-    @tasks = {}
-    @new_tasks = []
-    @lines = []
     sync()
   end
 
-  CURRENT_STATE_VALUE = {
-    nil => -1,
-    "unscheduled" => 0,
-    "planned" => 0,
-    "unstarted" => 0,
-    "started" => 2,
-    "finished" => 3,
-    "delivered" => 3,
-    "accepted" => 3,
-    "rejected" => 6,
-  }
-
   def sync
-    clear_tasks
-    clear_lines
-
     owners = PivotalApi.fetch_owners
     labels = PivotalApi.fetch_labels
     epics = PivotalApi.fetch_epics
     
     my_remote_stories = PivotalApi.fetch_my_stories
     support_remote_stories = PivotalApi.fetch_support_stories
-    remote_stories = PivotalParser.parse_all(my_remote_stories + support_remote_stories)
-
-    remote_stories.each do |story|
-      @tasks[story["id"]] ||= {}
-      @tasks[story["id"]]["remote"] = story
-    end
+    remote_stories_by_id = PivotalParser
+      .parse_all(my_remote_stories + support_remote_stories)
+      .group_by {|s| s["id"]}
 
     @lines = read(owners)
+    @lines = zip(@lines, remote_stories_by_id)
+    @new_remote_stories = find_new_stories(@lines, remote_stories_by_id)
     
-    # now @lines looks like [ "some string", 123STORYID, { "new story" } ]
-    # local_tasks = @lines.select {|l| l.is_a?(Hash)}.select {|t| !t["id"].nil?}
+    # Reconcile
     
-    # compare stuff
+    @lines = add_local_changesets(@lines)
+    @lines = apply_local_changesets(@lines)
+    @lines = add_remote_changesets(@lines)
     
-    @tasks.each_pair {|id, task| @tasks[id] = TodoReconciler.add_local_changeset(task)}
-    @tasks.each_pair {|id, task| @tasks[id] = TodoReconciler.apply_local_changeset(task) }
-    @tasks.each_pair {|id, task| @tasks[id] = PivotalReconciler.add_remote_changeset(task)}
-    @tasks.each_pair {|id, task| PivotalApi.update_story(task["remote_changeset"])}
+    # Commit changes
     
-    # Persist new local stories. How do we update these in @lines?
-    @new_tasks.each do |line|
-      response = PivotalApi.create_story(line)
-      task = PivotalParser.parse_one(response)
+    # @lines = create_stories_from_new_local_tasks(@lines)
+    @lines = @new_remote_stories.length ? @new_remote_stories + ["\n"] + @lines : @lines
+    @lines.each {|line| puts line}
+    write(@lines, owners)
+    # apply_remote_changesets(@lines)
+  end
+
+  def apply_remote_changesets(lines)
+    lines.each do |line|
+      if TodoParser.is_task?(line) && !line["remote_changeset"].nil? && !line["remote_changeset"].empty?
+        PivotalApi.update_story(line["remote_changeset"])
+      end
     end
-
-    
-    
-    # write lines
-    # write(@lines, owners)
   end
 
-  # Be sure to save previous here, when --watching
-  def clear_tasks
-    @tasks = {}
-    @new_tasks = []
-  end
-
-  def clear_lines
-    @lines = []
+  def create_stories_from_new_local_tasks(lines)
+    lines.map do |line|
+      if TodoParser.is_task?(line) && line["remote"].nil? && line["local"]["id"].nil?
+        response = PivotalApi.create_story(story)
+        task = PivotalParser.parse_one(response)
+        story.merge({ "local" => task, "remote" => task })
+      else
+        line
+      end
+    end
   end
 
   def rebuild
@@ -97,7 +82,7 @@ class Sync
   def write(lines, owners)
     File.open(@file_name, "w") do |f|
       lines.each do |line| 
-        if line.is_a?(Hash)
+        if TodoParser.is_task?(line)
           f.puts PivotalSerializer.serialize_one(line, owners)
         else
           f.puts line
@@ -112,14 +97,7 @@ class Sync
     File.open(@file_name, "a+").read.each_line do |line|
       if TodoParser.is_task?(line)
         task = TodoParser.parse_one(line, owners)
-        if task["id"]
-          @tasks[task["id"]] ||= {}
-          @tasks[task["id"]]["local"] = task
-          lines << task["id"]
-        else
-          @new_tasks << task
-          lines << task
-        end
+        lines << { "local" => task }
       else
         lines << line
       end
@@ -127,58 +105,56 @@ class Sync
     lines
   end
 
-  # This is super ugly, but early returns weren't working for some reason
-  def create_new_remote_stories(lines)
+  def zip(lines, remote_stories_by_id)
     lines.map do |line|
-      line.is_a?(Hash) && line["id"].nil? ? (
-        response = PivotalApi.create_story(line)
-        PivotalParser.parse_one(response)
-      ) : line
+      if TodoParser.is_task?(line)
+        stories = remote_stories_by_id[ line["local"]["id"] ]
+        stories.nil? ? line : line.merge({ "remote" => stories[0] })
+      else
+        line
+      end
     end
   end
 
-  def get_new_local_tasks(remote_stories, local_tasks)
-    new_ids = remote_stories.map {|s| s["id"]} - local_tasks.map {|t| t["id"]}
-    new_tasks = remote_stories.select {|story| new_ids.include?(story["id"])}
-    new_tasks.empty? ? [] : new_tasks + ["\n"]
+  def find_new_stories(lines, remote_stories_by_id)
+    local_task_ids = lines
+      .select {|line| TodoParser.is_task?(line) }
+      .map {|task| task["local"]["id"]}
+      .uniq.compact
+    new_ids = remote_stories_by_id.keys - local_task_ids
+    remote_stories_by_id
+      .select {|id, _stories| new_ids.include?(id)}
+      .values
+      .map {|stories| { "remote" => stories[0] }}
   end
 
-  def advance_current_state_of_remote_stories(lines, remote_stories)
+  def add_local_changesets(lines)
     lines.map do |line|
-      line.is_a?(Hash) && line["id"] ? (
-        local_task = line
-        remote_story = remote_stories.find {|story| story["id"] == local_task["id"]}   
-        if remote_story && current_state_has_advanced?(remote_story, local_task)
-          estimate = remote_story["estimate"] || 1
-          PivotalApi.update_story({ 
-            "id" => local_task["id"], 
-            "current_state" => local_task["current_state"],
-            "estimate" => estimate
-          })
-          local_task
-        else
-          local_task
-        end
-      ) : line
+      if TodoParser.is_task?(line)
+        TodoReconciler.add_local_changeset(line)
+      else
+        line
+      end
     end
   end
 
-  def current_state_has_advanced?(from, to)
-    CURRENT_STATE_VALUE[to["current_state"]] - CURRENT_STATE_VALUE[from["current_state"]] > 0
+  def apply_local_changesets(lines)
+    lines.map do |line|
+      if TodoParser.is_task?(line)
+        TodoReconciler.apply_local_changeset(line)
+      else
+        line
+      end
+    end
   end
 
-  def advance_current_state_of_local_tasks(lines, remote_stories)
+  def add_remote_changesets(lines)
     lines.map do |line|
-      line.is_a?(Hash) && line["id"] ? (
-        local_task = line
-        remote_story = remote_story = remote_stories.find {|story| story["id"] == local_task["id"]}   
-        if remote_story && current_state_has_advanced?(local_task, remote_story)
-          local_task["current_state"] = remote_story["current_state"]
-          local_task
-        else
-          line
-        end
-      ) : line
+      if TodoParser.is_task?(line)
+        PivotalReconciler.add_remote_changeset(line)
+      else
+        line
+      end
     end
   end
 end

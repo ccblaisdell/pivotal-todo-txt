@@ -2,7 +2,7 @@ module TodoParser
   module_function
 
   def is_task?(line)
-    line.match(/^(-|\+|\*)/)
+    line.is_a?(Hash) || line.match(/^(-|\+|\*)/)
   end
 
   def parse_one(line, owners=[])

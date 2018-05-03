@@ -5,18 +5,23 @@ module PivotalReconciler
     local = task["local"] || {}
     remote = task["remote"]
 
-    changeset = { "id" => remote["id"] }
+    changeset = {}
     changeset = update("current_state", changeset, local, remote)
     changeset = update("estimate", changeset, local, remote)
     changeset = update("name", changeset, local, remote)
+    changeset = changeset.empty? ? nil : changeset.merge({ "id" => remote["id"] })
     
     task["remote_changeset"] = changeset
     task
   end
 
   def update(name, changeset, local, remote)
-    local[name] == remote[name] ?
-      changeset :
+    if local.nil? or remote.nil?
+      changeset
+    elsif local[name] == remote[name]
+      changeset
+    else
       changeset.merge({ name => local[name] })
+    end
   end
 end

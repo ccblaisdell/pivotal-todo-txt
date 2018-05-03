@@ -30,6 +30,7 @@ module TodoReconciler
 
   def apply_local_changeset(task)
     task["local"] = task["local"].merge task["local_changeset"]
+    task
   end
 
   def enforce_min_estimate_if_start(changeset, local, remote, previous)

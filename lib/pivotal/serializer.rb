@@ -5,7 +5,8 @@ module PivotalSerializer
     stories.map {|story| serialize_one(story, owners)}
   end
 
-  def serialize_one(story, owners=[])
+  def serialize_one(line, owners=[])
+    story = line["local"] || line["remote"]
     output = []
     output << put_state(story)
     output << put_estimate(story)
@@ -43,7 +44,7 @@ module PivotalSerializer
   end
 
   def put_name(story)
-    story["name"].strip
+    story["name"].to_s.strip
   end
 
   def put_owners(story, owners)
