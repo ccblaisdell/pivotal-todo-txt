@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'dotenv/load'
 require 'pry'
+require 'listen'
 require './lib/pivotal/api'
 require './lib/pivotal/parser'
 require './lib/pivotal/reconciler'
@@ -14,22 +15,58 @@ class Sync
   def initialize(opts={})
     @file_name = opts[:file] || DEFAULT_FILE_NAME
     @watch = opts[:watch]
-    sync()
+    @ignore_next_event = false
+    if @watch
+      watch()
+    else
+      run()
+    end
   end
 
-  def sync
+  def watch
+    file_name = File.expand_path(@file_name)
+    dir = File.dirname(file_name)
+    matcher = Regexp.new( Regexp.escape(File.basename(file_name)) )
+  
+    @listener = Listen.to(dir, only: matcher) do
+      if !@ignore_next_event
+        run()
+      else
+        @ignore_next_event = false
+      end
+    end
+    @listener.start
+
+    puts "👀 watching: #{File.expand_path(@file_name)}"
+
+    run
+    sleep
+    at_exit { @listener.stop }
+  end
+
+  def run
+    puts "Syncing..."
+
+    # Get remote resources
+
     owners = PivotalApi.fetch_owners
     labels = PivotalApi.fetch_labels
-    epics = PivotalApi.fetch_epics
-    
     my_remote_stories = PivotalApi.fetch_my_stories
     support_remote_stories = PivotalApi.fetch_support_stories
     remote_stories_by_id = PivotalParser
       .parse_all(my_remote_stories + support_remote_stories)
       .group_by {|s| s["id"]}
+    
+    # Get lines in local file
 
     @lines = read(owners)
+
+    # Match local tasks with remote stories
+
     @lines = zip(@lines, remote_stories_by_id)
+
+    # Find remote stories that are not in local file
+
     @new_remote_stories = find_new_stories(@lines, remote_stories_by_id)
     
     # Reconcile
@@ -42,8 +79,12 @@ class Sync
     @lines = apply_local_changesets(@lines)
     @lines = create_stories_from_new_local_tasks(@lines)
     @lines = add_new_remote_stories(@lines, @new_remote_stories)
+    @ignore_next_event = true
     write(@lines, owners)
+    
     apply_remote_changesets(@lines)
+    
+    puts "Sync complete!"
   end
 
   def add_new_remote_stories(lines, new_remote_stories)
