@@ -2,6 +2,7 @@
 require 'dotenv/load'
 require './lib/pivotal/api'
 require './lib/pivotal/parser'
+require './lib/pivotal/reconciler'
 require './lib/pivotal/serializer'
 require './lib/todo/parser'
 require './lib/todo/reconciler'
@@ -48,17 +49,25 @@ class Sync
     end
 
     @lines = read(owners)
+    
+    # now @lines looks like [ "some string", 123STORYID, { "new story" } ]
     # local_tasks = @lines.select {|l| l.is_a?(Hash)}.select {|t| !t["id"].nil?}
     
     # compare stuff
     
     @tasks.each_pair {|id, task| @tasks[id] = TodoReconciler.add_local_changeset(task)}
     @tasks.each_pair {|id, task| @tasks[id] = TodoReconciler.apply_local_changeset(task) }
+    @tasks.each_pair {|id, task| @tasks[id] = PivotalReconciler.add_remote_changeset(task)}
+    @tasks.each_pair {|id, task| PivotalApi.update_story(task["remote_changeset"])}
     
-    # Add remote changesets
-    # Apply remote changesets
-    # Create new stories
-    # Add new stories to @tasks and @lines
+    # Persist new local stories. How do we update these in @lines?
+    @new_tasks.each do |line|
+      response = PivotalApi.create_story(line)
+      task = PivotalParser.parse_one(response)
+    end
+
+    
+    
     # write lines
     # write(@lines, owners)
   end
