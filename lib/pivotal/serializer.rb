@@ -58,6 +58,6 @@ module PivotalSerializer
   end
 
   def put_id(story)
-    ":ID:#{story["id"]}"
+    ":ID:#{story["id"]}" unless story["id"].nil?
   end
 end

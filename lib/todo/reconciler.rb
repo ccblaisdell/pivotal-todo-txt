@@ -8,8 +8,8 @@ module TodoReconciler
     "unstarted" => 0,
     "started" => 2,
     "finished" => 3,
-    "delivered" => 4,
-    "accepted" => 5,
+    "delivered" => 3,
+    "accepted" => 3,
     "rejected" => 6,
   }
 

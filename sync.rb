@@ -35,16 +35,19 @@ class Sync
     # Reconcile
     
     @lines = add_local_changesets(@lines)
-    @lines = apply_local_changesets(@lines)
     @lines = add_remote_changesets(@lines)
     
     # Commit changes
     
-    # @lines = create_stories_from_new_local_tasks(@lines)
-    @lines = @new_remote_stories.length ? @new_remote_stories + ["\n"] + @lines : @lines
-    @lines.each {|line| puts line}
+    @lines = apply_local_changesets(@lines)
+    @lines = create_stories_from_new_local_tasks(@lines)
+    @lines = add_new_remote_stories(@lines, @new_remote_stories)
     write(@lines, owners)
-    # apply_remote_changesets(@lines)
+    apply_remote_changesets(@lines)
+  end
+
+  def add_new_remote_stories(lines, new_remote_stories)
+    new_remote_stories.length > 0 ? new_remote_stories + ["\n"] + lines : lines
   end
 
   def apply_remote_changesets(lines)
@@ -58,9 +61,9 @@ class Sync
   def create_stories_from_new_local_tasks(lines)
     lines.map do |line|
       if TodoParser.is_task?(line) && line["remote"].nil? && line["local"]["id"].nil?
-        response = PivotalApi.create_story(story)
+        response = PivotalApi.create_story(line["local"])
         task = PivotalParser.parse_one(response)
-        story.merge({ "local" => task, "remote" => task })
+        line.merge({ "local" => task, "remote" => task })
       else
         line
       end
