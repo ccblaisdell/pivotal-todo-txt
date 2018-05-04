@@ -91,11 +91,19 @@ class TodoReconcilerTest < Test::Unit::TestCase
 
   def test_enforce_min_estimate_if_start
     changeset = add_local_changeset({
-      "local"    => { "estimate" => nil, "current_state" => "started" },
+      "local"    => { "estimate" => nil, "current_state" => "started", "story_type" => "feature" },
       "remote"   => { "estimate" => nil },
       "previous" => nil,
     })["local_changeset"]
     assert_equal 1, changeset["estimate"]
+
+    # Should not enforce estimate for non-features
+    changeset = add_local_changeset({
+      "local"    => { "estimate" => nil, "current_state" => "started", "story_type" => "chore" },
+      "remote"   => { "estimate" => nil },
+      "previous" => nil,
+    })["local_changeset"]
+    assert_equal nil, changeset["estimate"]
   end
 
   def test_update_name

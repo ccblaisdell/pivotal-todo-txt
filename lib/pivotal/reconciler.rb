@@ -43,7 +43,9 @@ module PivotalReconciler
   end
 
   def enforce_min_estimate_if_start(changeset, local, remote)
-    if local["estimate"].nil? && changeset["estimate"].nil? && TodoReconciler.state_val(local) > 0
+    if local["story_type"] != "feature"
+      changeset
+    elsif local["estimate"].nil? && changeset["estimate"].nil? && TodoReconciler.state_val(local) > 0
       changeset.merge({ "estimate" => 1 })
     else
       changeset

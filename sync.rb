@@ -11,6 +11,32 @@ require './lib/todo/reconciler'
 
 DEFAULT_FILE_NAME = "todo.txt.md"
 
+# Optimized for icmib
+DEFAULT_IGNORE = [
+  /\.bundle/,
+  /\.cache-loader/,
+  /\.git/,
+  /\.sass-cache/,
+  /\.storybook/,
+  /\.vscode/,
+  /app/,
+  /bin/,
+  /buildpack/,
+  /config/,
+  /coverage/,
+  /data/,
+  /db/,
+  /doc/,
+  /flow-typed/,
+  /lib/,
+  /log/,
+  /node_modules/,
+  /public/,
+  /script/,
+  /test/,
+  /tmp/,
+]
+
 class Sync
   def initialize(opts={})
     @file_name = opts[:file] || DEFAULT_FILE_NAME
@@ -27,8 +53,8 @@ class Sync
     file_name = File.expand_path(@file_name)
     dir = File.dirname(file_name)
     matcher = Regexp.new( Regexp.escape(File.basename(file_name)) )
-  
-    @listener = Listen.to(dir, only: matcher) do
+
+    @listener = Listen.to(dir, only: matcher, ignore: DEFAULT_IGNORE) do
       if !@ignore_next_event
         run()
       else
