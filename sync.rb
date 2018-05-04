@@ -120,6 +120,7 @@ class Sync
   def apply_remote_changesets(lines)
     lines.each do |line|
       if TodoParser.is_task?(line) && !line["remote_changeset"].nil? && !line["remote_changeset"].empty?
+        puts "Updating story: ", line["remote_changeset"]
         PivotalApi.update_story(line["remote_changeset"])
       end
     end
@@ -128,6 +129,7 @@ class Sync
   def create_stories_from_new_local_tasks(lines)
     lines.map do |line|
       if TodoParser.is_task?(line) && line["remote"].nil? && line["local"]["id"].nil?
+        puts "Creating story: ", line["local"]
         response = PivotalApi.create_story(line["local"])
         task = PivotalParser.parse_one(response)
         line.merge({ "local" => task, "remote" => task })
