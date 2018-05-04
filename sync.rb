@@ -13,9 +13,7 @@ DEFAULT_FILE_NAME = "todo.txt.md"
 
 # Optimized for icmib
 DEFAULT_IGNORE = [
-  /\.bundle/,
   /\.cache-loader/,
-  /\.git/,
   /\.sass-cache/,
   /\.storybook/,
   /\.vscode/,
@@ -29,12 +27,10 @@ DEFAULT_IGNORE = [
   /doc/,
   /flow-typed/,
   /lib/,
-  /log/,
   /node_modules/,
   /public/,
   /script/,
   /test/,
-  /tmp/,
 ]
 
 class Sync
