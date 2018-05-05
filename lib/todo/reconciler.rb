@@ -13,7 +13,7 @@ module TodoReconciler
     "rejected" => 6,
   }
 
-  def add_local_changeset(task)
+  def add_local_changeset(task, scale=[])
     local = task["local"] || {}
     remote = task["remote"] || {}
     previous = task["previous"]
@@ -22,6 +22,7 @@ module TodoReconciler
     changeset = update_current_state(changeset, local, remote, previous)
     changeset = update_estimate(changeset, local, remote, previous)
     changeset = enforce_min_estimate_if_start(changeset, local, remote, previous)
+    changeset = clamp_estimate_to_scale(changeset, local, remote, scale)
     changeset = update_name(changeset, local, remote, previous)
 
     task["local_changeset"] = changeset
@@ -120,5 +121,12 @@ module TodoReconciler
 
   def state_val(task)
     CURRENT_STATE_VALUE[task["current_state"]]
+  end
+
+  def clamp_estimate_to_scale(changeset, local, remote, scale)
+    return changeset if changeset["estimate"].nil?
+    n = changeset["estimate"]
+    estimate = scale.find { |i| i==n || i > n } || scale.max
+    changeset.merge({ "estimate" => estimate })
   end
 end

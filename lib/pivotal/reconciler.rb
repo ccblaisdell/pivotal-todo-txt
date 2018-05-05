@@ -3,7 +3,7 @@ require './lib/todo/reconciler'
 module PivotalReconciler
   module_function
 
-  def add_remote_changeset(task)
+  def add_remote_changeset(task, scale=[])
     local = task["local"] || {}
     remote = task["remote"]
 
@@ -11,6 +11,7 @@ module PivotalReconciler
     changeset = update_current_state(changeset, local, remote)
     changeset = enforce_min_estimate_if_start(changeset, local, remote)
     changeset = update("estimate", changeset, local, remote)
+    changeset = clamp_estimate_to_scale(changeset, local, remote, scale)
     changeset = update("name", changeset, local, remote)
     changeset = changeset.empty? ? nil : changeset.merge({ "id" => remote["id"] })
     
@@ -35,6 +36,8 @@ module PivotalReconciler
       changeset
     elsif local["current_state"] == remote["current_state"]
       changeset
+    elsif local["story_type"] != "feature" && TodoReconciler.state_val(local) > 2
+      changeset.merge({ "current_state" => "accepted" })
     elsif TodoReconciler.state_val(local) == TodoReconciler.state_val(remote)
       changeset
     else
@@ -50,5 +53,12 @@ module PivotalReconciler
     else
       changeset
     end
+  end
+
+  def clamp_estimate_to_scale(changeset, local, remote, scale)
+    return changeset if changeset["estimate"].nil?
+    n = changeset["estimate"]
+    estimate = scale.find { |i| i==n || i > n } || scale.max
+    changeset.merge({ "estimate" => estimate })
   end
 end

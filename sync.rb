@@ -10,6 +10,7 @@ require './lib/todo/parser'
 require './lib/todo/reconciler'
 
 DEFAULT_FILE_NAME = "todo.txt.md"
+DEFAULT_SCALE = [0,1,2,3,5,8]
 
 # Optimized for icmib
 DEFAULT_IGNORE = [
@@ -38,6 +39,7 @@ class Sync
     @file_name = opts[:file] || DEFAULT_FILE_NAME
     @watch = opts[:watch]
     @ignore_next_event = false
+    @estimate_scale = DEFAULT_SCALE # ENV['ESTIMATE_SCALE'].split(',').map {|d| d.to_i} || DEFAULT_SCALE
     if @watch
       watch()
     else
@@ -93,8 +95,8 @@ class Sync
     
     # Reconcile
     
-    @lines = add_local_changesets(@lines)
-    @lines = add_remote_changesets(@lines)
+    @lines = add_local_changesets(@lines, @estimate_scale)
+    @lines = add_remote_changesets(@lines, @estimate_scale)
     
     # Commit changes
     
@@ -196,10 +198,10 @@ class Sync
       .map {|stories| { "remote" => stories[0] }}
   end
 
-  def add_local_changesets(lines)
+  def add_local_changesets(lines, scale)
     lines.map do |line|
       if TodoParser.is_task?(line)
-        TodoReconciler.add_local_changeset(line)
+        TodoReconciler.add_local_changeset(line, scale)
       else
         line
       end
@@ -216,10 +218,10 @@ class Sync
     end
   end
 
-  def add_remote_changesets(lines)
+  def add_remote_changesets(lines, scale)
     lines.map do |line|
       if TodoParser.is_task?(line)
-        PivotalReconciler.add_remote_changeset(line)
+        PivotalReconciler.add_remote_changeset(line, scale)
       else
         line
       end
