@@ -1,3 +1,4 @@
+require './lib/todo/parser'
 require './lib/todo/reconciler'
 
 module PivotalReconciler
@@ -60,5 +61,15 @@ module PivotalReconciler
     n = changeset["estimate"]
     estimate = scale.find { |i| i==n || i > n } || scale.max
     changeset.merge({ "estimate" => estimate })
+  end
+
+  def enforce_default_owner(changeset, my_initials, owners)
+    if changeset["owner_ids"].to_a.empty?
+      changeset.merge({ 
+        "owner_ids" => [ TodoParser.find_owner_id_by_initials(my_initials, owners) ]
+      })
+    else
+      changeset
+    end
   end
 end

@@ -101,7 +101,7 @@ class Sync
     # Commit changes
     
     @lines = apply_local_changesets(@lines)
-    @lines = create_stories_from_new_local_tasks(@lines)
+    @lines = create_stories_from_new_local_tasks(@lines, owners)
     @lines = add_new_remote_stories(@lines, @new_remote_stories)
     @ignore_next_event = true
     write(@lines, owners)
@@ -124,11 +124,12 @@ class Sync
     end
   end
 
-  def create_stories_from_new_local_tasks(lines)
+  def create_stories_from_new_local_tasks(lines, owners)
     lines.map do |line|
       if TodoParser.is_task?(line) && line["remote"].nil? && line["local"]["id"].nil?
-        puts "Creating story: ", line["local"]
-        response = PivotalApi.create_story(line["local"])
+        story = PivotalReconciler.enforce_default_owner(line["local"], ENV['MY_PIVOTAL_INITIALS'], owners)
+        puts "Creating story: ", story
+        response = PivotalApi.create_story(story)
         task = PivotalParser.parse_one(response)
         line.merge({ "local" => task, "remote" => task })
       else
