@@ -92,6 +92,11 @@ class Sync
     # Find remote stories that are not in local file
 
     @new_remote_stories = find_new_stories(@lines, remote_stories_by_id)
+
+    # Remove lines for stories that have been deleted, accepted or otherwise aren't being fetched
+
+    task_ids_to_remove = find_task_ids_to_remove(@lines, remote_stories_by_id)
+    @lines = remove_lines_for_closed_stories(@lines, task_ids_to_remove)
     
     # Reconcile
     
@@ -227,5 +232,28 @@ class Sync
         line
       end
     end
+  end
+
+  def find_task_ids_to_remove(lines, remote_stories_by_id)
+    remote_story_ids = remote_stories_by_id.keys
+    local_task_ids = lines
+      .select {|line| TodoParser.is_task?(line)}
+      .map {|line| line["local"]["id"]}
+      .uniq.compact
+    local_task_ids - remote_story_ids
+  end
+
+  def remove_lines_for_closed_stories(lines, task_ids_to_remove)
+    lines.map do |line|
+      if TodoParser.is_task?(line)
+        if task_ids_to_remove.include?(line["local"]["id"])
+          nil
+        else
+          line
+        end
+      else
+        line
+      end
+    end.compact
   end
 end
