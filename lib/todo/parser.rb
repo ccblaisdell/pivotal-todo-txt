@@ -37,11 +37,7 @@ module TodoParser
     when "+"
       "started"
     when "*"
-      "finished"
-    when "*"
       "delivered"
-    when "*"
-      "accepted"
     else
       nil
     end
