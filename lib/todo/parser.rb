@@ -83,9 +83,9 @@ module TodoParser
   end
 
   def get_id(rest_of_line)
-    r = /:ID:(\d+)/
+    r = /\[Link\]\((.*)\)/
     match = rest_of_line.match(r)
-    id = match ? match[1].to_i : nil
+    id = match ? match[1].split('/')[-1].to_i : nil
     [ id,
       rest_of_line.gsub(r, "").strip ]
   end

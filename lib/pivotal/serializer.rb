@@ -7,6 +7,7 @@ module PivotalSerializer
 
   def serialize_one(line, owners=[])
     story = line["local"] || line["remote"]
+    url = line["remote"] ? line["remote"]["url"] : nil
     output = []
     output << put_state(story)
     output << put_estimate(story)
@@ -14,7 +15,7 @@ module PivotalSerializer
     output << put_name(story)
     output << put_owners(story, owners)
     output << put_labels(story)
-    output << put_id(story)
+    output << put_link(url)
     output.flatten.compact.join(" ")
   end
 
@@ -57,7 +58,7 @@ module PivotalSerializer
     story["labels"].to_a.map {|label| "##{label}"}
   end
 
-  def put_id(story)
-    ":ID:#{story["id"]}" unless story["id"].nil?
+  def put_link(url)
+    "[Link](#{url})" unless url.nil?
   end
 end
