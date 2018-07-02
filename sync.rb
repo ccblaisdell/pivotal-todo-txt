@@ -94,6 +94,7 @@ class Sync
     @new_remote_stories = find_new_stories(@lines, remote_stories_by_id)
 
     # Remove lines for stories that have been deleted, accepted or otherwise aren't being fetched
+    # TODO: what about stories that don't make the cut because of pagination?
 
     task_ids_to_remove = find_task_ids_to_remove(@lines, remote_stories_by_id)
     @lines = remove_lines_for_closed_stories(@lines, task_ids_to_remove)
