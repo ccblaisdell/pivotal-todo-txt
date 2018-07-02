@@ -14,7 +14,7 @@ module PivotalReconciler
     changeset = update("estimate", changeset, local, remote)
     changeset = clamp_estimate_to_scale(changeset, local, remote, scale)
     changeset = update("name", changeset, local, remote)
-    changeset = changeset.empty? ? nil : changeset.merge({ "id" => remote["id"] })
+    changeset = changeset.empty? ? nil : changeset.merge({ "id" => remote["id"] }) if remote
     
     task["remote_changeset"] = changeset
     task
